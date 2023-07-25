@@ -34,7 +34,6 @@ func setup() {
 		},
 		WaitingFor: wait.ForListeningPort("5432/tcp"),
 	}
-
 	postgres, err := testcontainers.GenericContainer(
 		context.Background(),
 		testcontainers.GenericContainerRequest{
