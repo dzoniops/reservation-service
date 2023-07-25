@@ -15,13 +15,14 @@ type Reservation struct {
 	StartDate      time.Time         `json:"start_date"`
 	EndDate        time.Time         `json:"end_date"`
 	Status         ReservationStatus `json:"status"`
+	HostId         int64             `json:"host_id"`
 }
 
 type ReservationStatus int32
 
 const (
 	UNSPECIFIED ReservationStatus = 0
-	ACTIVE      ReservationStatus = 1
+	PENDING     ReservationStatus = 1
 	ACCEPTED    ReservationStatus = 2
 	DECLINED    ReservationStatus = 3
 )
