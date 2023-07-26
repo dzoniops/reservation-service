@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dzoniops/reservation-service/db"
+	"github.com/dzoniops/reservation-service/utils"
 )
 
 func setup() {
@@ -50,6 +51,7 @@ func setup() {
 	}
 	os.Setenv("PGPORT", dbPort.Port())
 	db.InitDB()
+	utils.InitValidator()
 }
 
 func teardown() {
