@@ -126,9 +126,9 @@ func (s *Server) DeleteReservation(c context.Context, req *pb.IdRequest) (*empty
 		return nil, status.Error(codes.NotFound, "Reservation not found")
 	}
 
-	tomorrow := reservation.StartDate.Add(24 * time.Hour)
+	dayBefore := reservation.StartDate.Add(-24 * time.Hour)
 
-	if reservation.StartDate.Equal(time.Now()) || tomorrow.Equal(time.Now()) {
+	if time.Now().After(dayBefore) {
 		return nil, status.Error(codes.InvalidArgument, "Cannot cancel reservation day before")
 	}
 	db.DB.Model(&reservation).Update("status", models.DECLINED)
