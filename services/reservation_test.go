@@ -119,3 +119,53 @@ func TestEndDateBeforeStartDate(t *testing.T) {
 	require.Error(t, err)
 	// require.Equal(t, info.ReservationId, nil)
 }
+
+func DeleteReservation24HoursBeforeStart(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(12 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(50 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	new_reservation, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.NoError(t, err)
+	require.NotEqual(t, new_reservation.ReservationId, 0)
+
+	_, err = (&Server{}).DeleteReservation(
+		context.TODO(),
+		&reservation.IdRequest{Id: new_reservation.ReservationId},
+	)
+
+	require.Error(t, err)
+}
+
+func DeleteReservationMoreThen24BeforeStart(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(35 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(50 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	new_reservation, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.NoError(t, err)
+	require.NotEqual(t, new_reservation.ReservationId, 0)
+
+	_, err = (&Server{}).DeleteReservation(
+		context.TODO(),
+		&reservation.IdRequest{Id: new_reservation.ReservationId},
+	)
+
+	require.NoError(t, err)
+}

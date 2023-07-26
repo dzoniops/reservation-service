@@ -73,9 +73,6 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	// 	reservation.Status = models.ACCEPTED
 	// }
 
-	// if reservation.StartDate.Before(time.Now()) || reservation.EndDate.Before(time.Now()) {
-	// 	return nil, status.Error(codes.InvalidArgument, "Start or End date have to be in future")
-	// }
 	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate) {
 		return nil, status.Error(
 			codes.AlreadyExists,
