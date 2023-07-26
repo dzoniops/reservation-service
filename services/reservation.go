@@ -14,6 +14,7 @@ import (
 	_ "github.com/dzoniops/reservation-service/client"
 	"github.com/dzoniops/reservation-service/db"
 	"github.com/dzoniops/reservation-service/models"
+	"github.com/dzoniops/reservation-service/utils"
 )
 
 type Server struct {
@@ -56,10 +57,17 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 		NumberOfGuests: req.Reservation.NumberOfGuests,
 		HostId:         req.Reservation.HostId,
 	}
-
+	err := utils.Validate.Struct(reservation)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	// accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccomodationId)
 	// if err != nil {
 	// 	return nil, status.Error(codes.NotFound, "Accommodation not found")
+	// }
+	// if accommodation.MinGuests < reservation.NumberOfGuests ||
+	// 	accommodation.MaxGuests > reservation.NumberOfGuests {
+	// 	return nil, status.Error(codes.InvalidArgument, "Invalid number of guests")
 	// }
 	// if accommodation.GetReservationModel() == accommodation_pb.ReservationModel_RESERVATION_MODEL_AUTO {
 	// 	reservation.Status = models.ACCEPTED
@@ -67,9 +75,6 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 
 	// if reservation.StartDate.Before(time.Now()) || reservation.EndDate.Before(time.Now()) {
 	// 	return nil, status.Error(codes.InvalidArgument, "Start or End date have to be in future")
-	// }
-	// if reservation.EndDate.Before(reservation.StartDate) {
-	// 	return nil, status.Error(codes.InvalidArgument, "Start date has to be before End date")
 	// }
 	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate) {
 		return nil, status.Error(
