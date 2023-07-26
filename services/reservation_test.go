@@ -83,3 +83,39 @@ func TestGetActiveReservationsGuest(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, info.ReservationId, 0)
 }
+
+func TestStartDateInPast(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(-24 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(48 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	info, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.Error(t, err)
+	require.Equal(t, info, nil)
+}
+
+func TestEndDateBeforeStartDate(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(100 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(50 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	info, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.Error(t, err)
+	require.Equal(t, info, nil)
+}
