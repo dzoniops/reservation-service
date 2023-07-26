@@ -120,7 +120,7 @@ func TestEndDateBeforeStartDate(t *testing.T) {
 	// require.Equal(t, info.ReservationId, nil)
 }
 
-func DeleteReservation24HoursBeforeStart(t *testing.T) {
+func TestDeleteReservation24HoursBeforeStart(t *testing.T) {
 	req := reservation.ReserveRequest{
 		UserId: 1,
 		Reservation: &reservation.Reservation{
@@ -145,7 +145,7 @@ func DeleteReservation24HoursBeforeStart(t *testing.T) {
 	require.Error(t, err)
 }
 
-func DeleteReservationMoreThen24BeforeStart(t *testing.T) {
+func TestDeleteReservationMoreThen24BeforeStart(t *testing.T) {
 	req := reservation.ReserveRequest{
 		UserId: 1,
 		Reservation: &reservation.Reservation{
