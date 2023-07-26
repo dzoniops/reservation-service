@@ -12,11 +12,13 @@ type Reservation struct {
 	AccomodationId int64             `json:"accomodation_id"`
 	NumberOfGuests int64             `json:"number_of_guests"`
 	UserId         int64             `json:"user_id"`
-	StartDate      time.Time         `json:"start_date"       validate:"gt=time.Now()"`
+	StartDate      time.Time         `json:"start_date"`
 	EndDate        time.Time         `json:"end_date"         validate:"gtfield=StartDate"`
 	Status         ReservationStatus `json:"status"`
 	HostId         int64             `json:"host_id"`
 }
+
+// validate:"gt=time.Now()"
 
 type ReservationStatus int32
 
