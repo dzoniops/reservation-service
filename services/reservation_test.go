@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dzoniops/reservation-service/db"
+	"github.com/dzoniops/reservation-service/utils"
 )
 
 func setup() {
@@ -50,6 +51,7 @@ func setup() {
 	}
 	os.Setenv("PGPORT", dbPort.Port())
 	db.InitDB()
+	utils.InitValidator()
 }
 
 func teardown() {
@@ -64,7 +66,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestGetActiveReservationsGuest(t *testing.T) {
+func TestAddReservation(t *testing.T) {
 	req := reservation.ReserveRequest{
 		UserId: 1,
 		Reservation: &reservation.Reservation{
@@ -80,4 +82,40 @@ func TestGetActiveReservationsGuest(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotEqual(t, info.ReservationId, 0)
+}
+
+func TestStartDateInPast(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(-24 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(48 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	_, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.Error(t, err)
+	// require.Equal(t, info.ReservationId, nil)
+}
+
+func TestEndDateBeforeStartDate(t *testing.T) {
+	req := reservation.ReserveRequest{
+		UserId: 1,
+		Reservation: &reservation.Reservation{
+			AccommodationId: 1,
+			StartDate:       timestamppb.New(time.Now().Add(100 * time.Hour)),
+			EndDate:         timestamppb.New(time.Now().Add(50 * time.Hour)),
+			NumberOfGuests:  1,
+			Status:          reservation.ReservationStatus_RESERVATION_STATUS_PENDING,
+			HostId:          2,
+		},
+	}
+	_, err := (&Server{}).Reserve(context.TODO(), &req)
+
+	require.Error(t, err)
+	// require.Equal(t, info.ReservationId, nil)
 }

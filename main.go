@@ -28,6 +28,7 @@ import (
 
 	"github.com/dzoniops/reservation-service/db"
 	"github.com/dzoniops/reservation-service/services"
+	"github.com/dzoniops/reservation-service/utils"
 )
 
 func interceptorLogger(l log.Logger) logging.Logger {
@@ -51,6 +52,14 @@ func interceptorLogger(l log.Logger) logging.Logger {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+
+	db.InitDB()
+	utils.InitValidator()
+
 	// Setup logging.
 	logger := log.NewLogfmtLogger(os.Stderr)
 	rpcLogger := log.With(logger, "service", "gRPC/client", "component", "reservation")
@@ -89,11 +98,6 @@ func main() {
 			Log("msg", "recovered from panic", "panic", p, "stack", debug.Stack())
 		return status.Errorf(codes.Internal, "%s", p)
 	}
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-	db.InitDB()
 
 	grpcSrv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
