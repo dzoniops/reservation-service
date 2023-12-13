@@ -49,19 +49,19 @@ func (s *Server) ActiveReservationsHost(
 
 func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.ReserveResponse, error) {
 	reservation := models.Reservation{
-		AccomodationId: req.Reservation.AccommodationId,
-		UserId:         req.UserId,
-		StartDate:      req.Reservation.StartDate.AsTime(),
-		EndDate:        req.Reservation.EndDate.AsTime(),
-		Status:         models.PENDING,
-		NumberOfGuests: req.Reservation.NumberOfGuests,
-		HostId:         req.Reservation.HostId,
+		AccommodationId: req.Reservation.AccommodationId,
+		UserId:          req.UserId,
+		StartDate:       req.Reservation.StartDate.AsTime(),
+		EndDate:         req.Reservation.EndDate.AsTime(),
+		Status:          models.PENDING,
+		NumberOfGuests:  req.Reservation.NumberOfGuests,
+		HostId:          req.Reservation.HostId,
 	}
 	err := utils.Validate.Struct(reservation)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	// accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccomodationId)
+	// accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
 	// if err != nil {
 	// 	return nil, status.Error(codes.NotFound, "Accommodation not found")
 	// }
@@ -148,7 +148,7 @@ func mapToPb(in []models.Reservation) []*pb.Reservation {
 	vals := make([]*pb.Reservation, len(in))
 	for i := range in {
 		vals[i] = &pb.Reservation{
-			AccommodationId: in[i].AccomodationId,
+			AccommodationId: in[i].AccommodationId,
 			StartDate:       timestamppb.New(in[i].StartDate),
 			EndDate:         timestamppb.New(in[i].EndDate),
 			NumberOfGuests:  in[i].NumberOfGuests,
