@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/dzoniops/common/pkg/reservation"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
@@ -45,7 +44,7 @@ func setup() {
 	if err != nil {
 		log.Fatal("error:", err)
 	}
-	dbPort, err := postgres.MappedPort(context.Background(), nat.Port("5432/tcp"))
+	dbPort, err := postgres.MappedPort(context.Background(), "5432/tcp")
 	if err != nil {
 		log.Fatal("error:", err)
 	}

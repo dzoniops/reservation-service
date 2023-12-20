@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	accommodation_pb "github.com/dzoniops/common/pkg/accommodation"
 	pb "github.com/dzoniops/common/pkg/reservation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,7 +40,7 @@ func (s *Server) ActiveReservationsHost(
 ) (*pb.ActiveReservationsResponse, error) {
 	var reservations []models.Reservation
 
-	db.DB.Where("status = ? AND host_id = ? AND start_date > ?", models.ACCEPTED, req.Id, time.Now()).
+	db.DB.Where("status = ? AND host_id = ? AND end_date > ?", models.ACCEPTED, req.Id, time.Now()).
 		Find(&reservations)
 	return &pb.ActiveReservationsResponse{
 		Reservations: mapToPb(reservations),
@@ -49,6 +48,12 @@ func (s *Server) ActiveReservationsHost(
 }
 
 func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.ReserveResponse, error) {
+
+	//TODO: uzeti iz accomodation hostId
+	//accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
+	//if err != nil {
+	//	return nil, status.Error(codes.NotFound, "Accommodation not found")
+	//}
 	reservation := models.Reservation{
 		AccommodationId: req.Reservation.AccommodationId,
 		UserId:          req.UserId,
@@ -62,23 +67,23 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
-	if err != nil {
-		return nil, status.Error(codes.NotFound, "Accommodation not found")
-	}
-	if accommodation.MinGuests < reservation.NumberOfGuests ||
-		accommodation.MaxGuests > reservation.NumberOfGuests {
-		return nil, status.Error(codes.InvalidArgument, "Invalid number of guests")
 
+	//if accommodation.MinGuests < reservation.NumberOfGuests ||
+	//	accommodation.MaxGuests > reservation.NumberOfGuests {
+	//	return nil, status.Error(codes.InvalidArgument, "Invalid number of guests")
+	//
+	//}
+	if s.checkIfAvailable(reservation.StartDate, reservation.EndDate, reservation.AccommodationId) {
+		return nil, status.Error(codes.InvalidArgument, "Not available for this date range")
 	}
 	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate) {
 		return nil, status.Error(
 			codes.AlreadyExists,
 			"Selected dates overlap with existing accepted reservations")
 	}
-	if accommodation.GetReservationModel() == accommodation_pb.ReservationModel_RESERVATION_MODEL_AUTO {
-		reservation.Status = models.ACCEPTED
-	}
+	//if accommodation.GetReservationModel() == accommodationpb.ReservationModel_RESERVATION_MODEL_AUTO {
+	//	reservation.Status = models.ACCEPTED
+	//}
 
 	db.DB.Create(&reservation)
 	return &pb.ReserveResponse{
@@ -86,6 +91,12 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	}, nil
 }
 
+func (s *Server) checkIfAvailable(startDate, endDate time.Time, accommodationId int64) bool {
+	var availability models.Availability
+	res := db.DB.Where("start_date <= ? and end_date >= ? and accommodation_id = ?", startDate, endDate, accommodationId).
+		First(&availability)
+	return res.Error != nil
+}
 func (s *Server) checkActiveReservations(startDate, endDate time.Time) bool {
 	reservations := s.reservationsInGivenDateRange(startDate, endDate, models.ACCEPTED)
 	return len(reservations) != 0
@@ -113,7 +124,7 @@ func (s *Server) Accept(c context.Context, req *pb.IdRequest) (*pb.ReserveRespon
 
 func (s *Server) Decline(c context.Context, req *pb.IdRequest) (*pb.ReserveResponse, error) {
 	var reservation models.Reservation
-	if res := db.DB.Where(&models.Reservation{ID: req.Id}).First(&reservation); res.Error != nil {
+	if res := db.DB.Where(&models.Reservation{ID: req.Id}).Find(&reservation); res.Error != nil {
 		return nil, status.Error(codes.NotFound, "Reservation not found")
 	}
 	db.DB.Model(&reservation).Update("status", models.DECLINED)
@@ -145,11 +156,32 @@ func (s *Server) reservationsInGivenDateRange(
 		Find(&reservations)
 	return reservations
 }
+func (s *Server) PendingReservationsHost(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
+	var reservations []models.Reservation
+	db.DB.Where(&models.Reservation{HostId: req.Id, Status: models.PENDING}).Find(&reservations)
+	var pendingReservations *pb.PendingReservationsResponse
+	pendingReservations.Reservations = mapToPb(reservations)
+	return pendingReservations, nil
+}
+func (s *Server) PendingReservationsGuest(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
+	var reservations []models.Reservation
+	db.DB.Where(&models.Reservation{UserId: req.Id, Status: models.PENDING}).Find(&reservations)
+	var pendingReservations *pb.PendingReservationsResponse
+	pendingReservations.Reservations = mapToPb(reservations)
+	return pendingReservations, nil
+}
+func (s *Server) PendingReservationsAccommodation(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
+	var reservations []models.Reservation
+	db.DB.Where(&models.Reservation{AccommodationId: req.Id, Status: models.PENDING}).Find(&reservations)
+	var pendingReservations *pb.PendingReservationsResponse
+	pendingReservations.Reservations = mapToPb(reservations)
+	return pendingReservations, nil
+}
 
 func mapToPb(in []models.Reservation) []*pb.Reservation {
-	vals := make([]*pb.Reservation, len(in))
+	reservations := make([]*pb.Reservation, len(in))
 	for i := range in {
-		vals[i] = &pb.Reservation{
+		reservations[i] = &pb.Reservation{
 			AccommodationId: in[i].AccommodationId,
 			StartDate:       timestamppb.New(in[i].StartDate),
 			EndDate:         timestamppb.New(in[i].EndDate),
@@ -157,5 +189,5 @@ func mapToPb(in []models.Reservation) []*pb.Reservation {
 			Status:          pb.ReservationStatus(in[i].Status),
 		}
 	}
-	return vals
+	return reservations
 }

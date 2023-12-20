@@ -27,5 +27,8 @@ func InitDB() {
 		panic(err)
 	}
 
-	DB.AutoMigrate(&models.Reservation{})
+	err = DB.AutoMigrate(&models.Reservation{}, models.Availability{})
+	if err != nil {
+		return
+	}
 }
