@@ -92,6 +92,7 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 }
 
 func (s *Server) AddAvailable(c context.Context, req *pb.AddAvailableRequest) (*emptypb.Empty, error) {
+	//TODO: check if accommodation exists
 	startDate := req.StartDate.AsTime()
 	endDate := req.EndDate.AsTime()
 	if !s.checkAvailableOverlap(startDate, endDate) {
