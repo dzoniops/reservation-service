@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	accommodation_pb "github.com/dzoniops/common/pkg/accommodation"
 	pb "github.com/dzoniops/common/pkg/reservation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,23 +62,24 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	// accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
-	// if err != nil {
-	// 	return nil, status.Error(codes.NotFound, "Accommodation not found")
-	// }
-	// if accommodation.MinGuests < reservation.NumberOfGuests ||
-	// 	accommodation.MaxGuests > reservation.NumberOfGuests {
-	// 	return nil, status.Error(codes.InvalidArgument, "Invalid number of guests")
-	// }
-	// if accommodation.GetReservationModel() == accommodation_pb.ReservationModel_RESERVATION_MODEL_AUTO {
-	// 	reservation.Status = models.ACCEPTED
-	// }
+	accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "Accommodation not found")
+	}
+	if accommodation.MinGuests < reservation.NumberOfGuests ||
+		accommodation.MaxGuests > reservation.NumberOfGuests {
+		return nil, status.Error(codes.InvalidArgument, "Invalid number of guests")
 
+	}
 	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate) {
 		return nil, status.Error(
 			codes.AlreadyExists,
 			"Selected dates overlap with existing accepted reservations")
 	}
+	if accommodation.GetReservationModel() == accommodation_pb.ReservationModel_RESERVATION_MODEL_AUTO {
+		reservation.Status = models.ACCEPTED
+	}
+
 	db.DB.Create(&reservation)
 	return &pb.ReserveResponse{
 		ReservationId: reservation.ID,
@@ -91,7 +93,7 @@ func (s *Server) checkActiveReservations(startDate, endDate time.Time) bool {
 
 func (s *Server) Accept(c context.Context, req *pb.IdRequest) (*pb.ReserveResponse, error) {
 	var reservation models.Reservation
-	if res := db.DB.Where(&models.Reservation{ID: req.Id}).First(&reservation); res.Error != nil {
+	if res := db.DB.Where(&models.Reservation{ID: req.Id, Status: models.PENDING}).First(&reservation); res.Error != nil {
 		return nil, status.Error(codes.NotFound, "Reservation not found")
 	}
 	db.DB.Model(&reservation).Update("status", models.ACCEPTED)
