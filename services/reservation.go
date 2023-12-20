@@ -91,6 +91,35 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	}, nil
 }
 
+func (s *Server) AddAvailable(c context.Context, req *pb.AddAvailableRequest) (*emptypb.Empty, error) {
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+	if !s.checkAvailableOverlap(startDate, endDate) {
+		return nil, status.Error(codes.InvalidArgument, "Overlaps with another available section")
+	}
+	available := models.Availability{
+		AccommodationId: req.AccommodationId,
+		Price:           req.Price,
+		StartDate:       startDate,
+		EndDate:         endDate,
+	}
+	db.DB.Create(&available)
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) EditAvailable(c context.Context, req *pb.EditAvailableRequest) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) checkAvailableOverlap(startDate, endDate time.Time) bool {
+	available := s.availableInGivenRange(startDate, endDate)
+	return len(available) == 0
+}
+func (s *Server) availableInGivenRange(startDate, endDate time.Time) (available []models.Availability) {
+	db.DB.Where("start_date < ? and end_date > ?", endDate, startDate).
+		Find(&available)
+	return available
+}
 func (s *Server) checkIfAvailable(startDate, endDate time.Time, accommodationId int64) bool {
 	var availability models.Availability
 	res := db.DB.Where("start_date <= ? and end_date >= ? and accommodation_id = ?", startDate, endDate, accommodationId).

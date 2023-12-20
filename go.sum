@@ -44,6 +44,8 @@ github.com/dzoniops/common v0.0.0-20231210135216-dbbf7c99cadd h1:+FXDy40i3+QYkeZ
 github.com/dzoniops/common v0.0.0-20231210135216-dbbf7c99cadd/go.mod h1:vw+V88JJpC8gyvyqK0Vj1oKCV3GgvsZ6SozgOsqYH9c=
 github.com/dzoniops/common v0.0.0-20231220093641-27f4a7760e8c h1:o95rClAERDWerQUHPRMYHEcCW8Uwko1H0B9KONXr9aA=
 github.com/dzoniops/common v0.0.0-20231220093641-27f4a7760e8c/go.mod h1:vw+V88JJpC8gyvyqK0Vj1oKCV3GgvsZ6SozgOsqYH9c=
+github.com/dzoniops/common v0.0.0-20231220140047-0d6e5ecd8f53 h1:zxaRwmaHMilqZEbTUCHh6od0dozw1deY438Y8/ONOA0=
+github.com/dzoniops/common v0.0.0-20231220140047-0d6e5ecd8f53/go.mod h1:vw+V88JJpC8gyvyqK0Vj1oKCV3GgvsZ6SozgOsqYH9c=
 github.com/envoyproxy/protoc-gen-validate v0.10.1 h1:c0g45+xCJhdgFGw7a5QAfdS4byAbud7miNWJ1WwEVf8=
 github.com/envoyproxy/protoc-gen-validate v1.0.2 h1:QkIBuU5k+x7/QXPvPPnWXWlCdaBFApVqftFV6k087DA=
 github.com/frankban/quicktest v1.11.3/go.mod h1:wRf/ReqHper53s+kmmSZizM8NamnL3IM0I9ntUbOk+k=
