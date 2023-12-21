@@ -93,6 +93,10 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 
 func (s *Server) AddAvailable(c context.Context, req *pb.AddAvailableRequest) (*emptypb.Empty, error) {
 	//TODO: check if accommodation exists
+	//accommodation, err := s.AccommodationClient.GetAccommodation(c, reservation.AccommodationId)
+	//if err != nil {
+	//	return nil, status.Error(codes.NotFound, "Accommodation not found")
+	//}
 	startDate := req.StartDate.AsTime()
 	endDate := req.EndDate.AsTime()
 	if !s.checkAvailableOverlap(startDate, endDate) {
@@ -109,9 +113,37 @@ func (s *Server) AddAvailable(c context.Context, req *pb.AddAvailableRequest) (*
 }
 
 func (s *Server) EditAvailable(c context.Context, req *pb.EditAvailableRequest) (*emptypb.Empty, error) {
+	var available models.Availability
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	if res := db.DB.Where(&models.Availability{ID: req.Id}).First(&available); res.Error != nil {
+		return nil, status.Error(codes.NotFound, "Available section not found")
+	}
+	if !s.checkForExistingAvailableOverlap(startDate, endDate, req.Id) {
+		return nil, status.Error(codes.InvalidArgument, "Overlaps with another available section")
+	}
+	if s.checkActiveReservations(startDate, endDate) {
+		return nil, status.Error(codes.InvalidArgument, "Cannot edit selected section while there are active reservation")
+	}
+	available.StartDate = startDate
+	available.EndDate = endDate
+	db.DB.Save(&available)
+
 	return &emptypb.Empty{}, nil
+
 }
 
+func (s *Server) checkForExistingAvailableOverlap(startDate, endDate time.Time, id int64) bool {
+	available := s.availableExcludingInGivenRange(startDate, endDate, id)
+	return len(available) == 0
+}
+
+func (s *Server) availableExcludingInGivenRange(startDate, endDate time.Time, id int64) (available []models.Availability) {
+	db.DB.Where("start_date < ? and end_date > ? and id != ?", endDate, startDate, id).
+		Find(&available)
+	return available
+}
 func (s *Server) checkAvailableOverlap(startDate, endDate time.Time) bool {
 	available := s.availableInGivenRange(startDate, endDate)
 	return len(available) == 0
