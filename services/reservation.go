@@ -76,7 +76,7 @@ func (s *Server) Reserve(c context.Context, req *pb.ReserveRequest) (*pb.Reserve
 	if s.checkIfAvailable(reservation.StartDate, reservation.EndDate, reservation.AccommodationId) {
 		return nil, status.Error(codes.InvalidArgument, "Not available for this date range")
 	}
-	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate) {
+	if s.checkActiveReservations(reservation.StartDate, reservation.EndDate, reservation.AccommodationId) {
 		return nil, status.Error(
 			codes.AlreadyExists,
 			"Selected dates overlap with existing accepted reservations")
@@ -120,10 +120,10 @@ func (s *Server) EditAvailable(c context.Context, req *pb.EditAvailableRequest) 
 	if res := db.DB.Where(&models.Availability{ID: req.Id}).First(&available); res.Error != nil {
 		return nil, status.Error(codes.NotFound, "Available section not found")
 	}
-	if !s.checkForExistingAvailableOverlap(startDate, endDate, req.Id) {
+	if !s.checkForExistingAvailableOverlap(startDate, endDate, req.Id, req.AccommodationId) {
 		return nil, status.Error(codes.InvalidArgument, "Overlaps with another available section")
 	}
-	if s.checkActiveReservations(startDate, endDate) {
+	if s.checkActiveReservations(startDate, endDate, req.AccommodationId) {
 		return nil, status.Error(codes.InvalidArgument, "Cannot edit selected section while there are active reservation")
 	}
 	available.StartDate = startDate
@@ -134,13 +134,13 @@ func (s *Server) EditAvailable(c context.Context, req *pb.EditAvailableRequest) 
 
 }
 
-func (s *Server) checkForExistingAvailableOverlap(startDate, endDate time.Time, id int64) bool {
-	available := s.availableExcludingInGivenRange(startDate, endDate, id)
+func (s *Server) checkForExistingAvailableOverlap(startDate, endDate time.Time, id, accommodationId int64) bool {
+	available := s.availableExcludingInGivenRange(startDate, endDate, id, accommodationId)
 	return len(available) == 0
 }
 
-func (s *Server) availableExcludingInGivenRange(startDate, endDate time.Time, id int64) (available []models.Availability) {
-	db.DB.Where("start_date < ? and end_date > ? and id != ?", endDate, startDate, id).
+func (s *Server) availableExcludingInGivenRange(startDate, endDate time.Time, id, accommodationId int64) (available []models.Availability) {
+	db.DB.Where("start_date < ? and end_date > ? and id != ? and accommodation_id = ?", endDate, startDate, id, accommodationId).
 		Find(&available)
 	return available
 }
@@ -159,26 +159,18 @@ func (s *Server) checkIfAvailable(startDate, endDate time.Time, accommodationId 
 		First(&availability)
 	return res.Error != nil
 }
-func (s *Server) checkActiveReservations(startDate, endDate time.Time) bool {
-	reservations := s.reservationsInGivenDateRange(startDate, endDate, models.ACCEPTED)
+func (s *Server) checkActiveReservations(startDate, endDate time.Time, accommodationId int64) bool {
+	reservations := s.reservationsInGivenDateRange(startDate, endDate, models.ACCEPTED, accommodationId)
 	return len(reservations) != 0
 }
 
 func (s *Server) Accept(c context.Context, req *pb.IdRequest) (*pb.ReserveResponse, error) {
+	//TODO: check accommodation
 	var reservation models.Reservation
 	if res := db.DB.Where(&models.Reservation{ID: req.Id, Status: models.PENDING}).First(&reservation); res.Error != nil {
 		return nil, status.Error(codes.NotFound, "Reservation not found")
 	}
 	db.DB.Model(&reservation).Update("status", models.ACCEPTED)
-	// change all other overlapping to declined
-	reservations := s.reservationsInGivenDateRange(
-		reservation.StartDate,
-		reservation.EndDate,
-		models.PENDING,
-	)
-	for _, r := range reservations {
-		db.DB.Model(&r).Update("status", models.DECLINED)
-	}
 	return &pb.ReserveResponse{
 		ReservationId: reservation.ID,
 	}, nil
@@ -213,8 +205,9 @@ func (s *Server) DeleteReservation(c context.Context, req *pb.IdRequest) (*empty
 func (s *Server) reservationsInGivenDateRange(
 	startDate, endDate time.Time,
 	status models.ReservationStatus,
-) (reservations []models.Reservation) {
-	db.DB.Where("start_date < ? and end_date > ? and status = ?", endDate, startDate, status).
+	accommodationId int64) (reservations []models.Reservation) {
+	db.DB.Where(
+		"start_date < ? and end_date > ? and status = ? and accommodation_id = ?", endDate, startDate, status, accommodationId).
 		Find(&reservations)
 	return reservations
 }

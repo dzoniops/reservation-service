@@ -26,3 +26,18 @@ const (
 	ACCEPTED    ReservationStatus = 2
 	DECLINED    ReservationStatus = 3
 )
+
+// AfterSave change all other reservation to declined
+func (r *Reservation) AfterSave(tx *gorm.DB) (err error) {
+	if r.Status == ACCEPTED {
+		var reservations []Reservation
+		tx.Where(
+			"start_date < ? and end_date > ? and status = ? and accommodation_id = ?",
+			r.EndDate, r.StartDate, PENDING, r.AccommodationId).
+			Find(&reservations)
+		for _, r := range reservations {
+			tx.Model(&r).Update("status", DECLINED)
+		}
+	}
+	return
+}
