@@ -72,7 +72,7 @@ require (
 )
 
 require (
-	github.com/dzoniops/common v0.0.0-20231220140047-0d6e5ecd8f53
+	github.com/dzoniops/common v0.0.0-20231226135025-e59ceac4418b
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect

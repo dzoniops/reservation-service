@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	pb "github.com/dzoniops/common/pkg/reservation"
@@ -22,6 +23,20 @@ type Server struct {
 	AccommodationClient client.AccommodationClient
 }
 
+func (s *Server) FilterAvailableForAccommodations(c context.Context, req *pb.FilterAccommodationsRequest) (*pb.FilterAvailableResponse, error) {
+	var result pb.FilterAvailableResponse
+	for _, accommodation := range req.Accommodations {
+		price, err := s.checkAvailableGetPrice(accommodation.StartDate.AsTime(), accommodation.EndDate.AsTime(), accommodation.AccommodationId)
+		if err == nil {
+			idPrice := pb.IdPrice{
+				Id:    accommodation.AccommodationId,
+				Price: price,
+			}
+			result.IdPrices = append(result.IdPrices, &idPrice)
+		}
+	}
+	return &result, nil
+}
 func (s *Server) ActiveReservationsGuest(
 	c context.Context,
 	req *pb.IdRequest,
@@ -152,6 +167,16 @@ func (s *Server) availableInGivenRange(startDate, endDate time.Time) (available 
 	db.DB.Where("start_date < ? and end_date > ?", endDate, startDate).
 		Find(&available)
 	return available
+}
+func (s *Server) checkAvailableGetPrice(startDate, endDate time.Time, id int64) (int64, error) {
+	var availability models.Availability
+	res := db.DB.Where("start_date <= ? AND end_date >= ? AND accommodation_id", startDate, endDate, id).
+		First(&availability)
+	if res.Error != nil {
+		return -1, res.Error
+	}
+	fmt.Println(availability)
+	return availability.Price, nil
 }
 func (s *Server) checkIfAvailable(startDate, endDate time.Time, accommodationId int64) bool {
 	var availability models.Availability
