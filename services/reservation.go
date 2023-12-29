@@ -170,7 +170,7 @@ func (s *Server) availableInGivenRange(startDate, endDate time.Time) (available 
 }
 func (s *Server) checkAvailableGetPrice(startDate, endDate time.Time, id int64) (int64, error) {
 	var availability models.Availability
-	res := db.DB.Where("start_date <= ? AND end_date >= ? AND accommodation_id", startDate, endDate, id).
+	res := db.DB.Where("start_date <= ? AND end_date >= ? AND accommodation_id = ?", startDate, endDate, id).
 		First(&availability)
 	if res.Error != nil {
 		return -1, res.Error
