@@ -203,7 +203,7 @@ func (s *Server) Accept(c context.Context, req *pb.IdRequest) (*pb.ReserveRespon
 
 func (s *Server) Decline(c context.Context, req *pb.IdRequest) (*pb.ReserveResponse, error) {
 	var reservation models.Reservation
-	if res := db.DB.Where(&models.Reservation{ID: req.Id}).Find(&reservation); res.Error != nil {
+	if res := db.DB.Where(&models.Reservation{ID: req.Id, Status: models.PENDING}).Find(&reservation); res.Error != nil {
 		return nil, status.Error(codes.NotFound, "Reservation not found")
 	}
 	db.DB.Model(&reservation).Update("status", models.DECLINED)
