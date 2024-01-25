@@ -238,24 +238,27 @@ func (s *Server) reservationsInGivenDateRange(
 }
 func (s *Server) PendingReservationsHost(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
 	var reservations []models.Reservation
-	db.DB.Where(&models.Reservation{HostId: req.Id, Status: models.PENDING}).Find(&reservations)
-	var pendingReservations *pb.PendingReservationsResponse
-	pendingReservations.Reservations = mapToPb(reservations)
-	return pendingReservations, nil
+	db.DB.Where(&models.Reservation{Status: models.PENDING, HostId: req.Id}).Find(&reservations)
+	return &pb.PendingReservationsResponse{
+		Reservations: mapToPb(reservations),
+	}, nil
+
 }
 func (s *Server) PendingReservationsGuest(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
 	var reservations []models.Reservation
-	db.DB.Where(&models.Reservation{UserId: req.Id, Status: models.PENDING}).Find(&reservations)
-	var pendingReservations *pb.PendingReservationsResponse
-	pendingReservations.Reservations = mapToPb(reservations)
-	return pendingReservations, nil
+	db.DB.Where(&models.Reservation{Status: models.PENDING, UserId: req.Id}).Find(&reservations)
+	return &pb.PendingReservationsResponse{
+		Reservations: mapToPb(reservations),
+	}, nil
+
 }
 func (s *Server) PendingReservationsAccommodation(c context.Context, req *pb.IdRequest) (*pb.PendingReservationsResponse, error) {
 	var reservations []models.Reservation
 	db.DB.Where(&models.Reservation{AccommodationId: req.Id, Status: models.PENDING}).Find(&reservations)
-	var pendingReservations *pb.PendingReservationsResponse
-	pendingReservations.Reservations = mapToPb(reservations)
-	return pendingReservations, nil
+	return &pb.PendingReservationsResponse{
+		Reservations: mapToPb(reservations),
+	}, nil
+
 }
 
 func mapToPb(in []models.Reservation) []*pb.Reservation {
